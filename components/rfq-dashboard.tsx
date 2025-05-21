@@ -202,23 +202,124 @@ export function RfqDashboard() {
         </div>
       </div>
 
-      {/* RFQ Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        {paginatedRfqs.map((rfq) => (
-          <Card key={rfq.id} className="overflow-hidden">
-            <div className="p-4 border-b">
-              <div className="flex items-start">
-                <input
-                  type="checkbox"
-                  className="mr-3 mt-1"
-                  checked={selectedRfqs.includes(rfq.id)}
-                  onChange={(e) => {
+      {/* RFQ Display (Grid or List view) */}
+      {viewMode === "grid" ? (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          {paginatedRfqs.map((rfq) => (
+            <Card key={rfq.id} className="overflow-hidden">
+              <div className="p-4 border-b">
+                <div className="flex items-start">
+                  <input
+                    type="checkbox"
+                    className="mr-3 mt-1"
+                    checked={selectedRfqs.includes(rfq.id)}
+                    onChange={(e) => {
+                      e.stopPropagation()
+                      toggleRfqSelection(rfq.id)
+                    }}
+                  />
+                  <div className="flex-1 cursor-pointer" onClick={() => handleRfqClick(rfq.id)}>
+                    <div className="flex justify-between items-start">
+                      <div className="flex items-center">
+                        <div className="text-blue-600 mr-2">
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-5 w-5"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                            />
+                          </svg>
+                        </div>
+                        <h3 className="font-medium text-gray-900">{rfq.title}</h3>
+                      </div>
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          "ml-2",
+                          rfq.status === "active" && "bg-green-100 text-green-800 border-green-200",
+                          rfq.status === "pending" && "bg-yellow-100 text-yellow-800 border-yellow-200",
+                          rfq.status === "completed" && "bg-blue-100 text-blue-800 border-blue-200",
+                        )}
+                      >
+                        {rfq.status}
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-gray-500 mt-1">Created: {rfq.createdAt}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="p-4 cursor-pointer" onClick={() => handleRfqClick(rfq.id)}>
+                <h4 className="text-sm font-medium text-gray-700 mb-2">Suppliers</h4>
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {rfq.suppliers.map((supplier, index) => (
+                    <Badge key={index} variant="secondary" className="bg-gray-100 text-gray-700">
+                      {supplier.name}
+                    </Badge>
+                  ))}
+                </div>
+                {rfq.additionalSuppliers > 0 && (
+                  <Badge variant="secondary" className="bg-gray-100 text-gray-700">
+                    +{rfq.additionalSuppliers} more
+                  </Badge>
+                )}
+              </div>
+              <div className="p-4 border-t flex justify-end">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                  onClick={(e) => {
                     e.stopPropagation()
-                    toggleRfqSelection(rfq.id)
+                    handleDeleteClick(e, rfq.id)
                   }}
-                />
-                <div className="flex-1 cursor-pointer" onClick={() => handleRfqClick(rfq.id)}>
-                  <div className="flex justify-between items-start">
+                >
+                  <Trash2 size={18} />
+                </Button>
+              </div>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <div className="overflow-x-auto mb-6">
+          <table className="w-full border-collapse bg-white rounded-lg shadow">
+            <thead>
+              <tr className="bg-gray-50 border-b">
+                <th className="py-3 px-4 text-left w-10">
+                  <span className="sr-only">Select</span>
+                </th>
+                <th className="py-3 px-4 text-left">RFQ</th>
+                <th className="py-3 px-4 text-left">Status</th>
+                <th className="py-3 px-4 text-left">Created</th>
+                <th className="py-3 px-4 text-left">Suppliers</th>
+                <th className="py-3 px-4 text-left w-10">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {paginatedRfqs.map((rfq) => (
+                <tr 
+                  key={rfq.id} 
+                  className="border-b hover:bg-gray-50 cursor-pointer"
+                  onClick={() => handleRfqClick(rfq.id)}
+                >
+                  <td className="py-3 px-4">
+                    <input
+                      type="checkbox"
+                      checked={selectedRfqs.includes(rfq.id)}
+                      onChange={(e) => {
+                        e.stopPropagation()
+                        toggleRfqSelection(rfq.id)
+                      }}
+                      className="h-4 w-4"
+                    />
+                  </td>
+                  <td className="py-3 px-4">
                     <div className="flex items-center">
                       <div className="text-blue-600 mr-2">
                         <svg
@@ -236,12 +337,13 @@ export function RfqDashboard() {
                           />
                         </svg>
                       </div>
-                      <h3 className="font-medium text-gray-900">{rfq.title}</h3>
+                      <span className="font-medium">{rfq.title}</span>
                     </div>
+                  </td>
+                  <td className="py-3 px-4">
                     <Badge
                       variant="outline"
                       className={cn(
-                        "ml-2",
                         rfq.status === "active" && "bg-green-100 text-green-800 border-green-200",
                         rfq.status === "pending" && "bg-yellow-100 text-yellow-800 border-yellow-200",
                         rfq.status === "completed" && "bg-blue-100 text-blue-800 border-blue-200",
@@ -249,42 +351,41 @@ export function RfqDashboard() {
                     >
                       {rfq.status}
                     </Badge>
-                  </div>
-                  <p className="text-sm text-gray-500 mt-1">Created: {rfq.createdAt}</p>
-                </div>
-              </div>
-            </div>
-            <div className="p-4 cursor-pointer" onClick={() => handleRfqClick(rfq.id)}>
-              <h4 className="text-sm font-medium text-gray-700 mb-2">Suppliers</h4>
-              <div className="flex flex-wrap gap-2 mb-2">
-                {rfq.suppliers.map((supplier, index) => (
-                  <Badge key={index} variant="secondary" className="bg-gray-100 text-gray-700">
-                    {supplier.name}
-                  </Badge>
-                ))}
-              </div>
-              {rfq.additionalSuppliers > 0 && (
-                <Badge variant="secondary" className="bg-gray-100 text-gray-700">
-                  +{rfq.additionalSuppliers} more
-                </Badge>
-              )}
-            </div>
-            <div className="p-4 border-t flex justify-end">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  handleDeleteClick(e, rfq.id)
-                }}
-              >
-                <Trash2 size={18} />
-              </Button>
-            </div>
-          </Card>
-        ))}
-      </div>
+                  </td>
+                  <td className="py-3 px-4 text-gray-500 text-sm">{rfq.createdAt}</td>
+                  <td className="py-3 px-4">
+                    <div className="flex flex-wrap gap-2">
+                      {rfq.suppliers.slice(0, 2).map((supplier, index) => (
+                        <Badge key={index} variant="secondary" className="bg-gray-100 text-gray-700">
+                          {supplier.name}
+                        </Badge>
+                      ))}
+                      {(rfq.suppliers.length > 2 || rfq.additionalSuppliers > 0) && (
+                        <Badge variant="secondary" className="bg-gray-100 text-gray-700">
+                          +{rfq.additionalSuppliers + Math.max(0, rfq.suppliers.length - 2)} more
+                        </Badge>
+                      )}
+                    </div>
+                  </td>
+                  <td className="py-3 px-4">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleDeleteClick(e, rfq.id)
+                      }}
+                    >
+                      <Trash2 size={18} />
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {/* Pagination */}
       <div className="flex justify-center mt-8">
