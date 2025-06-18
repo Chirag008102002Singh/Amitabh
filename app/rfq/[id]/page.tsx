@@ -15,7 +15,7 @@ import {
   getRouteDetails,
   getAllCommodities,
   updateRfqStatus,
-  updateRouteDetails, // Add this import (assumed to exist or to be implemented)
+  updateRouteDetails,
   type RFQ,
   type RouteRecommendation,
   type RouteDetail,
@@ -44,11 +44,6 @@ export default function RfqDetailPage({ params }: { params: { id: string } }) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const itemsPerPage = 10
   const [awardedSuppliers, setAwardedSuppliers] = useState<Record<string, string | null>>({})
-  const [selectedSupplier, setSelectedSupplier] = useState<string>("")
-  const [selectedPrice, setSelectedPrice] = useState<number>(0)
-  const [selectedCategory, setSelectedCategory] = useState<string>("")
-  const [targetPrice, setTargetPrice] = useState<number>(0)
-  const [targetCategory, setTargetCategory] = useState<string>("")
 
   useEffect(() => {
     const rfqData = getRfqById(params.id)
@@ -64,7 +59,6 @@ export default function RfqDetailPage({ params }: { params: { id: string } }) {
         setRouteDetails((prev) => ({ ...prev, [recs[0].route]: details }))
       }
 
-      // Initialize awardedSuppliers from route details
       const initialAwards: Record<string, string | null> = {}
       recs.forEach((rec) => {
         const details = getRouteDetails(params.id, rec.route)
@@ -156,27 +150,23 @@ export default function RfqDetailPage({ params }: { params: { id: string } }) {
   }
 
   const handleAwardStatusChange = (supplier: string, laneName: string) => {
-    // Update awardedSuppliers state: toggle the supplier for this lane
     setAwardedSuppliers((prev) => {
       const newAwards = { ...prev };
       if (newAwards[laneName] === supplier) {
-        newAwards[laneName] = null; // Unaward the supplier
+        newAwards[laneName] = null;
       } else {
-        newAwards[laneName] = supplier; // Award the new supplier
+        newAwards[laneName] = supplier;
       }
       return newAwards;
     });
-  
-    // Update route details: ensure only the selected supplier is awarded
+
     const updatedDetails = routeDetails[laneName].map((detail) => ({
       ...detail,
       awardStatus: detail.supplier === supplier && awardedSuppliers[laneName] !== supplier ? "Awarded" : "Not Awarded",
     }));
-  
-    // Persist changes to the data source
+
     updateRouteDetails(params.id, laneName, updatedDetails);
-  
-    // Update local routeDetails state to reflect persisted changes
+
     setRouteDetails((prev) => ({
       ...prev,
       [laneName]: updatedDetails,
@@ -241,12 +231,19 @@ export default function RfqDetailPage({ params }: { params: { id: string } }) {
 
   const uniqueLanes = Array.from(new Set(recommendations.map((rec) => rec.route)))
 
-  const handleSupplierSelection = (supplier: string, price: number, category: string) => {
-    setSelectedSupplier(supplier)
-    setSelectedPrice(price)
-    setSelectedCategory(category)
-    // ... any other existing logic ...
+  const uniqueSuppliers = Array.from(new Set(tableData.map((row) => row.supplier)));
+
+  // Randomly split unique suppliers into two groups: reverted and pending
+  function splitSuppliersRandomly(suppliers: string[]): { reverted: string[]; pending: string[] } {
+    const shuffled = [...suppliers].sort(() => 0.5 - Math.random());
+    const mid = Math.ceil(shuffled.length / 2);
+    return {
+      reverted: shuffled.slice(0, mid),
+      pending: shuffled.slice(mid),
+    };
   }
+
+  const { reverted: revertedSuppliers, pending: pendingSuppliers } = splitSuppliersRandomly(uniqueSuppliers);
 
   if (!rfq) {
     return <div className="p-8">Loading...</div>
@@ -484,11 +481,9 @@ export default function RfqDetailPage({ params }: { params: { id: string } }) {
                     <div className="col-span-3">
                       <div className="bg-white border rounded-md h-64 overflow-y-auto">
                         <ul className="divide-y">
-                          <li className="p-3 hover:bg-gray-50">Rail Cargo Services</li>
-                          <li className="p-3 hover:bg-gray-50">Road Transport Solutions</li>
-                          <li className="p-3 hover:bg-gray-50">Cargo Express</li>
-                          <li className="p-3 hover:bg-gray-50">Worldwide Logistics</li>
-                          <li className="p-3 hover:bg-gray-50">Air Cargo Express</li>
+                          {uniqueSuppliers.map((supplier, index) => (
+                            <li key={index} className="p-3 hover:bg-gray-50">{supplier}</li>
+                          ))}
                         </ul>
                       </div>
                     </div>
@@ -498,10 +493,9 @@ export default function RfqDetailPage({ params }: { params: { id: string } }) {
                     <div className="col-span-3">
                       <div className="bg-green-50 border border-green-100 rounded-md h-64 overflow-y-auto">
                         <ul className="divide-y divide-green-100">
-                          <li className="p-3 hover:bg-green-100">Rail Cargo Services</li>
-                          <li className="p-3 hover:bg-green-100">Road Transport Solutions</li>
-                          <li className="p-3 hover:bg-green-100">Cargo Express</li>
-                          <li className="p-3 hover:bg-green-100">Worldwide Logistics</li>
+                          {revertedSuppliers.map((supplier, index) => (
+                            <li key={index} className="p-3 hover:bg-green-100">{supplier}</li>
+                          ))}
                         </ul>
                       </div>
                     </div>
@@ -511,11 +505,9 @@ export default function RfqDetailPage({ params }: { params: { id: string } }) {
                     <div className="col-span-3">
                       <div className="bg-yellow-50 border border-yellow-100 rounded-md h-64 overflow-y-auto">
                         <ul className="divide-y divide-yellow-100">
-                          <li className="p-3 hover:bg-yellow-100">Rail Cargo Services</li>
-                          <li className="p-3 hover:bg-yellow-100">Worldwide Logistics</li>
-                          <li className="p-3 hover:bg-yellow-100">Air Cargo Express</li>
-                          <li className="p-3 hover:bg-yellow-100">Logistics Partners</li>
-                          <li className="p-3 hover:bg-yellow-100">Supply Chain Management</li>
+                          {pendingSuppliers.map((supplier, index) => (
+                            <li key={index} className="p-3 hover:bg-yellow-100">{supplier}</li>
+                          ))}
                         </ul>
                       </div>
                     </div>
@@ -526,7 +518,6 @@ export default function RfqDetailPage({ params }: { params: { id: string } }) {
           </div>
         )}
 
-        {/* Supplier Recommendations - Collapsible Routes */}
         <div className="mb-6">
           <h2 className="text-xl font-semibold mb-4">Supplier Recommendations</h2>
 
@@ -727,7 +718,6 @@ export default function RfqDetailPage({ params }: { params: { id: string } }) {
           </div>
         </div>
 
-        {/* Supplier Recommendations - Table */}
         <div className="mt-8">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold">Supplier Recommendations</h2>
@@ -956,7 +946,7 @@ export default function RfqDetailPage({ params }: { params: { id: string } }) {
                       <td className="p-3 text-sm">{row.transshipments}</td>
                       <td className="p-3 text-sm">{row.temperatureControl ? "Yes" : "No"}</td>
                       <td className="p-3 text-sm">
-                      <Button
+                        <Button
                           variant={awardedSuppliers[row.laneName] === row.supplier ? "default" : "outline"}
                           size="sm"
                           className={
@@ -965,7 +955,7 @@ export default function RfqDetailPage({ params }: { params: { id: string } }) {
                               : "bg-gray-100 text-gray-700"
                           }
                           onClick={() => handleAwardStatusChange(row.supplier, row.laneName)}
-                          disabled={rfq.status === "completed"} // Disable button after RFQ is closed
+                          disabled={rfq.status === "completed"}
                         >
                           {awardedSuppliers[row.laneName] === row.supplier ? "Awarded" : "Not Awarded"}
                         </Button>
@@ -1022,7 +1012,6 @@ export default function RfqDetailPage({ params }: { params: { id: string } }) {
           </div>
         </div>
 
-        {/* Close RFQ Dialog */}
         {showCloseRfqDialog && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-6">
@@ -1043,7 +1032,6 @@ export default function RfqDetailPage({ params }: { params: { id: string } }) {
           </div>
         )}
 
-        {/* Mail Sent Popup */}
         {showMailSentPopup && (
           <div className="fixed inset-0 flex items-center justify-center z-50">
             <div className="bg-green-500 text-white rounded-lg shadow-lg p-4">
@@ -1052,7 +1040,6 @@ export default function RfqDetailPage({ params }: { params: { id: string } }) {
           </div>
         )}
 
-        {/* Import Modal */}
         {showImportModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-6">
