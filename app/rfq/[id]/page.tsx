@@ -1,14 +1,15 @@
-"use client"
+// page.tsx
+"use client";
 
-import type React from "react"
-import { useState, useEffect, useRef } from "react"
-import { useRouter } from "next/navigation"
-import { ArrowLeft, ChevronDown, ChevronUp, Info, Download, Upload, X } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Card } from "@/components/ui/card"
-import { Label } from "@/components/ui/label"
-import { Input } from "@/components/ui/input"
+import type React from "react";
+import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
+import { ArrowLeft, ChevronDown, ChevronUp, Info, Download, Upload, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import {
   getRfqById,
   getRouteRecommendations,
@@ -19,135 +20,136 @@ import {
   type RFQ,
   type RouteRecommendation,
   type RouteDetail,
+  getUniqueSuppliers,
 } from "@/data/rfq-data";
 
 export default function RfqDetailPage({ params }: { params: { id: string } }) {
-  const router = useRouter()
-  const [rfq, setRfq] = useState<RFQ | null>(null)
-  const [expandedRoutes, setExpandedRoutes] = useState<string[]>([])
-  const [recommendations, setRecommendations] = useState<RouteRecommendation[]>([])
-  const [routeDetails, setRouteDetails] = useState<Record<string, RouteDetail[]>>({})
-  const [temperatureControl, setTemperatureControl] = useState<"all" | "yes" | "no">("all")
-  const [searchValues, setSearchValues] = useState<Record<string, string>>({})
-  const [sortColumn, setSortColumn] = useState<string | null>(null)
-  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc")
-  const [currentPage, setCurrentPage] = useState(1)
-  const [showDetailsModal, setShowDetailsModal] = useState(false)
-  const [activeSupplierTab, setActiveSupplierTab] = useState<"all" | "reverted" | "pending">("all")
-  const [selectedLane, setSelectedLane] = useState<string>("")
-  const [showCloseRfqDialog, setShowCloseRfqDialog] = useState(false)
-  const [showImportModal, setShowImportModal] = useState(false)
-  const [showMailSentPopup, setShowMailSentPopup] = useState(false)
-  const [importFile, setImportFile] = useState<File | null>(null)
-  const [selectedCommodities, setSelectedCommodities] = useState<string[]>([])
-  const [commodities, setCommodities] = useState<string[]>([])
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const itemsPerPage = 10
-  const [awardedSuppliers, setAwardedSuppliers] = useState<Record<string, string | null>>({})
+  const router = useRouter();
+  const [rfq, setRfq] = useState<RFQ | null>(null);
+  const [expandedRoutes, setExpandedRoutes] = useState<string[]>([]);
+  const [recommendations, setRecommendations] = useState<RouteRecommendation[]>([]);
+  const [routeDetails, setRouteDetails] = useState<Record<string, RouteDetail[]>>({});
+  const [temperatureControl, setTemperatureControl] = useState<"all" | "yes" | "no">("all");
+  const [searchValues, setSearchValues] = useState<Record<string, string>>({});
+  const [sortColumn, setSortColumn] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [activeSupplierTab, setActiveSupplierTab] = useState<"all" | "reverted" | "pending">("all");
+  const [selectedLane, setSelectedLane] = useState<string>("");
+  const [showCloseRfqDialog, setShowCloseRfqDialog] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [showMailSentPopup, setShowMailSentPopup] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [selectedCommodities, setSelectedCommodities] = useState<string[]>([]);
+  const [commodities, setCommodities] = useState<string[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const itemsPerPage = 10;
+  const [awardedSuppliers, setAwardedSuppliers] = useState<Record<string, string | null>>({});
 
   useEffect(() => {
-    const rfqData = getRfqById(params.id)
+    const rfqData = getRfqById(params.id);
     if (rfqData) {
-      setRfq(rfqData)
-      const recs = getRouteRecommendations(params.id)
-      setRecommendations(recs)
-      setCommodities(getAllCommodities())
+      setRfq(rfqData);
+      const recs = getRouteRecommendations(params.id);
+      setRecommendations(recs);
+      setCommodities(getAllCommodities());
 
       if (recs.length > 0) {
-        setExpandedRoutes([recs[0].route])
-        const details = getRouteDetails(params.id, recs[0].route)
-        setRouteDetails((prev) => ({ ...prev, [recs[0].route]: details }))
+        setExpandedRoutes([recs[0].route]);
+        const details = getRouteDetails(params.id, recs[0].route);
+        setRouteDetails((prev) => ({ ...prev, [recs[0].route]: details }));
       }
 
-      const initialAwards: Record<string, string | null> = {}
+      const initialAwards: Record<string, string | null> = {};
       recs.forEach((rec) => {
-        const details = getRouteDetails(params.id, rec.route)
-        const awarded = details?.find((detail) => detail.awardStatus === "Awarded")?.supplier
-        initialAwards[rec.route] = awarded || null
-      })
-      setAwardedSuppliers(initialAwards)
+        const details = getRouteDetails(params.id, rec.route);
+        const awarded = details?.find((detail) => detail.awardStatus === "Awarded")?.supplier;
+        initialAwards[rec.route] = awarded || null;
+      });
+      setAwardedSuppliers(initialAwards);
     }
-  }, [params.id])
+  }, [params.id]);
 
   const toggleRouteExpansion = (route: string) => {
     if (expandedRoutes.includes(route)) {
-      setExpandedRoutes(expandedRoutes.filter((r) => r !== route))
+      setExpandedRoutes(expandedRoutes.filter((r) => r !== route));
     } else {
-      setExpandedRoutes([...expandedRoutes, route])
+      setExpandedRoutes([...expandedRoutes, route]);
       if (!routeDetails[route]) {
-        const details = getRouteDetails(params.id, route)
-        setRouteDetails((prev) => ({ ...prev, [route]: details }))
+        const details = getRouteDetails(params.id, route);
+        setRouteDetails((prev) => ({ ...prev, [route]: details }));
       }
     }
-  }
+  };
 
   const handleSort = (column: string) => {
     if (sortColumn === column) {
-      setSortDirection(sortDirection === "asc" ? "desc" : "asc")
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
     } else {
-      setSortColumn(column)
-      setSortDirection("asc")
+      setSortColumn(column);
+      setSortDirection("asc");
     }
-  }
+  };
 
   const handleSearch = (column: string, value: string) => {
-    setSearchValues((prev) => ({ ...prev, [column]: value }))
-    setCurrentPage(1)
-  }
+    setSearchValues((prev) => ({ ...prev, [column]: value }));
+    setCurrentPage(1);
+  };
 
   const handleLaneChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setSelectedLane(e.target.value)
-  }
+    setSelectedLane(e.target.value);
+  };
 
   const handleCommodityChange = (commodity: string) => {
     setSelectedCommodities((prev) => {
       if (prev.includes(commodity)) {
-        return prev.filter((c) => c !== commodity)
+        return prev.filter((c) => c !== commodity);
       } else {
-        return [...prev, commodity]
+        return [...prev, commodity];
       }
-    })
-  }
+    });
+  };
 
   const handleCloseRfq = () => {
     if (rfq) {
-      const updatedRfq = { ...rfq, status: "completed" as const }
-      setRfq(updatedRfq)
-      updateRfqStatus(rfq.id, "completed")
-      setShowCloseRfqDialog(false)
-      setShowMailSentPopup(true)
-      setTimeout(() => setShowMailSentPopup(false), 3000)
+      const updatedRfq = { ...rfq, status: "completed" as const };
+      setRfq(updatedRfq);
+      updateRfqStatus(rfq.id, "completed");
+      setShowCloseRfqDialog(false);
+      setShowMailSentPopup(true);
+      setTimeout(() => setShowMailSentPopup(false), 3000);
     }
-  }
+  };
 
   const handleImport = () => {
     if (importFile) {
-      alert(`File "${importFile.name}" imported successfully!`)
-      setImportFile(null)
-      setShowImportModal(false)
+      alert(`File "${importFile.name}" imported successfully!`);
+      setImportFile(null);
+      setShowImportModal(false);
     } else {
-      alert("Please select a file to import")
+      alert("Please select a file to import");
     }
-  }
+  };
 
   const handleExport = () => {
     let csvContent =
-      "Business Entity,Container Type,Commodity,Lane Name,Target Price,Category,Supplier,Price,Transit Time,Free Time,Transshipments,Temperature Control,Award Status\n"
+      "Business Entity,Container Type,Commodity,Lane Name,Target Price,Category,Supplier,Price,Transit Time,Free Time,Transshipments,Temperature Control,Award Status\n";
 
     tableData.forEach((row) => {
-      csvContent += `${row.businessEntity},${row.containerType},${row.commodity},${row.laneName},${row.targetPrice},${row.category},${row.supplier},${row.price},${row.transitTime},${row.freeTime},${row.transshipments},${row.temperatureControl ? "Yes" : "No"},${row.awardStatus}\n`
-    })
+      csvContent += `${row.businessEntity},${row.containerType},${row.commodity},${row.laneName},${row.targetPrice},${row.category},${row.supplier},${row.price},${row.transitTime},${row.freeTime},${row.transshipments},${row.temperatureControl ? "Yes" : "No"},${row.awardStatus}\n`;
+    });
 
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement("a")
-    link.setAttribute("href", url)
-    link.setAttribute("download", `rfq_${params.id}_data.csv`)
-    link.style.visibility = "hidden"
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-  }
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `rfq_${params.id}_data.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const handleAwardStatusChange = (supplier: string, laneName: string) => {
     setAwardedSuppliers((prev) => {
@@ -189,47 +191,47 @@ export default function RfqDetailPage({ params }: { params: { id: string } }) {
       temperatureControl: opt.temperatureControl,
       awardStatus: awardedSuppliers[rec.route] === opt.supplier ? "Awarded" : "Not Awarded",
     })),
-  )
+  );
 
   const filteredData = tableData.filter((row) => {
-    const matchesLane = !selectedLane || row.laneName === selectedLane
+    const matchesLane = !selectedLane || row.laneName === selectedLane;
     const matchesSearch = Object.entries(searchValues).every(([column, value]) => {
-      if (!value) return true
-      const cellValue = String(row[column as keyof typeof row] || "").toLowerCase()
-      return cellValue.includes(value.toLowerCase())
-    })
+      if (!value) return true;
+      const cellValue = String(row[column as keyof typeof row] || "").toLowerCase();
+      return cellValue.includes(value.toLowerCase());
+    });
     const matchesTemperature =
       temperatureControl === "all" ||
       (temperatureControl === "yes" && row.temperatureControl) ||
-      (temperatureControl === "no" && !row.temperatureControl)
-    const matchesCommodity = selectedCommodities.length === 0 || selectedCommodities.includes(row.commodity)
+      (temperatureControl === "no" && !row.temperatureControl);
+    const matchesCommodity = selectedCommodities.length === 0 || selectedCommodities.includes(row.commodity);
 
-    return matchesLane && matchesSearch && matchesTemperature && matchesCommodity
-  })
+    return matchesLane && matchesSearch && matchesTemperature && matchesCommodity;
+  });
 
   const sortedData = [...filteredData].sort((a, b) => {
-    if (!sortColumn) return 0
+    if (!sortColumn) return 0;
 
-    const aValue = a[sortColumn as keyof typeof a]
-    const bValue = b[sortColumn as keyof typeof b]
+    const aValue = a[sortColumn as keyof typeof a];
+    const bValue = b[sortColumn as keyof typeof b];
 
     if (typeof aValue === "number" && typeof bValue === "number") {
-      return sortDirection === "asc" ? aValue - bValue : bValue - aValue
+      return sortDirection === "asc" ? aValue - bValue : bValue - aValue;
     }
 
-    const aString = String(aValue || "").toLowerCase()
-    const bString = String(bValue || "").toLowerCase()
+    const aString = String(aValue || "").toLowerCase();
+    const bString = String(bValue || "").toLowerCase();
 
-    return sortDirection === "asc" ? aString.localeCompare(bString) : bString.localeCompare(aString)
-  })
+    return sortDirection === "asc" ? aString.localeCompare(bString) : bString.localeCompare(aString);
+  });
 
-  const totalItems = sortedData.length
-  const totalPages = Math.ceil(totalItems / itemsPerPage)
-  const paginatedData = sortedData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
-  const startItem = (currentPage - 1) * itemsPerPage + 1
-  const endItem = Math.min(startItem + itemsPerPage - 1, totalItems)
+  const totalItems = sortedData.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const paginatedData = sortedData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const startItem = (currentPage - 1) * itemsPerPage + 1;
+  const endItem = Math.min(startItem + itemsPerPage - 1, totalItems);
 
-  const uniqueLanes = Array.from(new Set(recommendations.map((rec) => rec.route)))
+  const uniqueLanes = Array.from(new Set(recommendations.map((rec) => rec.route)));
 
   const uniqueSuppliers = Array.from(new Set(tableData.map((row) => row.supplier)));
 
@@ -246,7 +248,7 @@ export default function RfqDetailPage({ params }: { params: { id: string } }) {
   const { reverted: revertedSuppliers, pending: pendingSuppliers } = splitSuppliersRandomly(uniqueSuppliers);
 
   if (!rfq) {
-    return <div className="p-8">Loading...</div>
+    return <div className="p-8">Loading...</div>;
   }
 
   return (
@@ -481,8 +483,13 @@ export default function RfqDetailPage({ params }: { params: { id: string } }) {
                     <div className="col-span-3">
                       <div className="bg-white border rounded-md h-64 overflow-y-auto">
                         <ul className="divide-y">
-                          {uniqueSuppliers.map((supplier, index) => (
-                            <li key={index} className="p-3 hover:bg-gray-50">{supplier}</li>
+                          {getUniqueSuppliers(params.id).map((supplier, index) => (
+                            <li
+                              key={index}
+                              className={`p-3 hover:bg-gray-50 ${supplier.isUnique ? "text-blue-600 font-bold" : ""}`}
+                            >
+                              {supplier.name} {supplier.isUnique ? "(New)" : ""}
+                            </li>
                           ))}
                         </ul>
                       </div>
@@ -494,7 +501,9 @@ export default function RfqDetailPage({ params }: { params: { id: string } }) {
                       <div className="bg-green-50 border border-green-100 rounded-md h-64 overflow-y-auto">
                         <ul className="divide-y divide-green-100">
                           {revertedSuppliers.map((supplier, index) => (
-                            <li key={index} className="p-3 hover:bg-green-100">{supplier}</li>
+                            <li key={index} className="p-3 hover:bg-green-100">
+                              {supplier}
+                            </li>
                           ))}
                         </ul>
                       </div>
@@ -506,7 +515,9 @@ export default function RfqDetailPage({ params }: { params: { id: string } }) {
                       <div className="bg-yellow-50 border border-yellow-100 rounded-md h-64 overflow-y-auto">
                         <ul className="divide-y divide-yellow-100">
                           {pendingSuppliers.map((supplier, index) => (
-                            <li key={index} className="p-3 hover:bg-yellow-100">{supplier}</li>
+                            <li key={index} className="p-3 hover:bg-yellow-100">
+                              {supplier}
+                            </li>
                           ))}
                         </ul>
                       </div>
@@ -987,7 +998,7 @@ export default function RfqDetailPage({ params }: { params: { id: string } }) {
                 Previous
               </Button>
               {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                const pageNumber = i + 1
+                const pageNumber = i + 1;
                 return (
                   <Button
                     key={i}
@@ -997,7 +1008,7 @@ export default function RfqDetailPage({ params }: { params: { id: string } }) {
                   >
                     {pageNumber}
                   </Button>
-                )
+                );
               })}
               {totalPages > 5 && <span className="px-2">...</span>}
               <Button
@@ -1059,7 +1070,7 @@ export default function RfqDetailPage({ params }: { params: { id: string } }) {
                     className="hidden"
                     onChange={(e) => {
                       if (e.target.files && e.target.files.length > 0) {
-                        setImportFile(e.target.files[0])
+                        setImportFile(e.target.files[0]);
                       }
                     }}
                   />
@@ -1083,5 +1094,5 @@ export default function RfqDetailPage({ params }: { params: { id: string } }) {
         )}
       </div>
     </div>
-  )
+  );
 }
