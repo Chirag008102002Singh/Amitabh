@@ -1,88 +1,89 @@
+// rfq-data.ts
 // Type definitions
 export type Supplier = {
-  id: string
-  name: string
-}
+  id: string;
+  name: string;
+};
 
 export type RFQ = {
-  id: string
-  title: string
-  createdAt: string
-  month: string // Add this to track the month
-  status: "active" | "pending" | "completed"
-  suppliers: { name: string }[]
-  additionalSuppliers: number
-}
+  id: string;
+  title: string;
+  createdAt: string;
+  month: string; // Add this to track the month
+  status: "active" | "pending" | "completed";
+  suppliers: { name: string; isUnique?: boolean }[];
+  additionalSuppliers: number;
+};
 
 export type RouteRecommendation = {
-  route: string
-  businessEntity: string
-  containerType: string
-  commodity: string
-  targetPrice: number
+  route: string;
+  businessEntity: string;
+  containerType: string;
+  commodity: string;
+  targetPrice: number;
   options: {
-    category: string
-    supplier: string
-    price: number
-    transitTime: string
-    freeTime: string
-    transshipments: string
-    temperatureControl: boolean
-    awardStatus: string
-  }[]
-}
+    category: string;
+    supplier: string;
+    price: number;
+    transitTime: string;
+    freeTime: string;
+    transshipments: string;
+    temperatureControl: boolean;
+    awardStatus: string;
+  }[];
+};
 
 export type RouteDetail = {
-  category: string
-  supplier: string
-  transfers: number
-  transitTime: string
-  temperatureControl: boolean
-  freeTime: string
-  price: number
-  priceCode: string
-  recommendationScore: number
-  shortestTransitTime: string
-  longestTransitTime: string
-  awardStatus: string
-}
+  category: string;
+  supplier: string;
+  transfers: number;
+  transitTime: string;
+  temperatureControl: boolean;
+  freeTime: string;
+  price: number;
+  priceCode: string;
+  recommendationScore: number;
+  shortestTransitTime: string;
+  longestTransitTime: string;
+  awardStatus: string;
+};
 
-export type SupplierCategory = "all" | "reverted" | "pending"
+export type SupplierCategory = "all" | "reverted" | "pending";
 
 // Helper functions
 const getRandomInt = (min: number, max: number): number => {
-  return Math.floor(Math.random() * (max - min + 1)) + min
-}
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+};
 
 const getRandomElement = <T>(array: T[]): T => {
-  return array[Math.floor(Math.random() * array.length)]
-}
+  return array[Math.floor(Math.random() * array.length)];
+};
 
 const getRandomSubset = <T>(array: T[], minSize: number, maxSize: number): T[] => {
-  const size = getRandomInt(minSize, Math.min(maxSize, array.length))
-  const shuffled = [...array].sort(() => 0.5 - Math.random())
-  return shuffled.slice(0, size)
-}
+  const size = getRandomInt(minSize, Math.min(maxSize, array.length));
+  const shuffled = [...array].sort(() => 0.5 - Math.random());
+  return shuffled.slice(0, size);
+};
 
 const getRandomBoolean = (probability: number = 0.5): boolean => {
-  return Math.random() < probability
-}
+  return Math.random() < probability;
+};
 
 const generatePrice = (base: number, variance: number): number => {
-  const varianceFactor = 1 + (Math.random() * variance * 2 - variance)
-  return Math.round(base * varianceFactor)
-}
+  const varianceFactor = 1 + (Math.random() * variance * 2 - variance);
+  return Math.round(base * varianceFactor);
+};
 
 const generateConsistentPrice = (seed: string, base: number, variance: number): number => {
-  let hash = 0
+  let hash = 0;
   for (let i = 0; i < seed.length; i++) {
-    hash = ((hash << 5) - hash) + seed.charCodeAt(i)
-    hash |= 0
+    hash = ((hash << 5) - hash) + seed.charCodeAt(i);
+    hash |= 0;
   }
-  const random = Math.abs((Math.sin(hash) * 10000) % 1)
-  const varianceFactor = 1 + (random * variance * 2 - variance)
-  return Math.round(base * varianceFactor)
-}
+  const random = Math.abs((Math.sin(hash) * 10000) % 1);
+  const varianceFactor = 1 + (random * variance * 2 - variance);
+  return Math.round(base * varianceFactor);
+};
 
 // Helper function to format date
 const formatDate = (date: Date): string => {
@@ -90,13 +91,13 @@ const formatDate = (date: Date): string => {
     year: "numeric",
     month: "long",
     day: "numeric",
-  })
-}
+  });
+};
 
 // Constants
-const businessEntities = ["PTSON", "IEG", "GCC", "FISB"]
-const containerTypes = ["20 DC", "40ft HC"]
-const commodities = ["Electronics", "Resin", "Oils/Fats", "Textiles", "Machinery", "Chemicals", "Automotive Parts"]
+const businessEntities = ["PTSON", "IEG", "GCC", "FISB"];
+const containerTypes = ["20 DC", "40ft HC"];
+const commodities = ["Electronics", "Resin", "Oils/Fats", "Textiles", "Machinery", "Chemicals", "Automotive Parts"];
 
 // Sample suppliers data
 export const availableSuppliers: Supplier[] = [
@@ -130,7 +131,7 @@ export const availableSuppliers: Supplier[] = [
   { id: "28", name: "Express Delivery Co" },
   { id: "29", name: "Rail Freight Services" },
   { id: "30", name: "Continental Transport" },
-]
+];
 
 // Define routes
 const routes = [
@@ -149,23 +150,37 @@ const routes = [
   "Ningbo → Valencia",
   "Shenzhen → Felixstowe",
   "Xiamen → Le Havre",
-]
+];
 
 // Helper function to generate RFQs
-const generateRfqs = (count: number = 50): RFQ[] => {
-  const rfqs: RFQ[] = []
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-  const years = [2023, 2024, 2025]
-  const statuses: Array<"active" | "pending" | "completed"> = ["active", "pending", "completed"]
+export const generateRfqs = (count: number = 50): RFQ[] => {
+  const rfqs: RFQ[] = [];
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const years = [2023, 2024, 2025];
+  const statuses: Array<"active" | "pending" | "completed"> = ["active", "pending", "completed"];
+  const allSupplierNames = availableSuppliers.map(s => s.name);
+
+  // Track unique suppliers across all RFQs
+  const supplierHistory: Record<string, Set<string>> = {};
 
   for (let i = 0; i < count; i++) {
-    const year = getRandomElement(years)
-    const month = getRandomElement(months)
-    const day = getRandomInt(1, 28)
-    const date = new Date(year, months.indexOf(month), day)
+    const year = getRandomElement(years);
+    const month = getRandomElement(months);
+    const day = getRandomInt(1, 28);
+    const date = new Date(year, months.indexOf(month), day);
     
-    const suppliers = getRandomSubset(availableSuppliers, 3, 3).map(s => ({ name: s.name }))
-    
+    // Generate suppliers with some variation
+    let suppliers = getRandomSubset(availableSuppliers, 3, 6).map(s => ({ name: s.name }));
+    const monthYearKey = `${month}_${year}`;
+
+    // Check and update supplier history
+    if (!supplierHistory[monthYearKey]) {
+      supplierHistory[monthYearKey] = new Set();
+    }
+    suppliers.forEach(supplier => {
+      supplierHistory[monthYearKey].add(supplier.name);
+    });
+
     rfqs.push({
       id: `RFQ_${month}_${year}_${i + 1}`,
       title: `RFQ_${month}_${year}_${i + 1}`,
@@ -174,14 +189,25 @@ const generateRfqs = (count: number = 50): RFQ[] => {
       status: getRandomElement(statuses),
       suppliers,
       additionalSuppliers: getRandomInt(15, 30)
-    })
+    });
   }
 
-  return rfqs
-}
+  // Add logic to identify unique suppliers per RFQ based on history
+  rfqs.forEach(rfq => {
+    const currentKey = `${rfq.month}_${new Date(rfq.createdAt).getFullYear()}`;
+    rfq.suppliers = rfq.suppliers.map(supplier => {
+      const isUnique = !Object.keys(supplierHistory)
+        .filter(key => key < currentKey)
+        .every(key => !supplierHistory[key].has(supplier.name));
+      return { ...supplier, isUnique: isUnique };
+    });
+  });
+
+  return rfqs;
+};
 
 // Export the generated RFQs
-export const initialRfqs: RFQ[] = generateRfqs(50)
+export const initialRfqs: RFQ[] = generateRfqs(50);
 
 // Define month-to-lane mapping
 const monthToLanesMap: Record<string, string[]> = {};
@@ -334,43 +360,43 @@ const routeDetailsData = generateRouteDetails();
 
 // Generate supplier categories for all RFQs
 export const generateSupplierCategories = (): Record<string, Record<SupplierCategory, string[]>> => {
-  const categories: Record<string, Record<SupplierCategory, string[]>> = {}
+  const categories: Record<string, Record<SupplierCategory, string[]>> = {};
   
   initialRfqs.forEach(rfq => {
     // Get a random subset of suppliers for each category
-    const allSuppliers = getRandomSubset(availableSuppliers, 5, 15).map(s => s.name)
-    const revertedSuppliers = getRandomSubset(allSuppliers, 3, Math.floor(allSuppliers.length * 0.8))
+    const allSuppliers = getRandomSubset(availableSuppliers, 5, 15).map(s => s.name);
+    const revertedSuppliers = getRandomSubset(allSuppliers, 3, Math.floor(allSuppliers.length * 0.8));
     const pendingSuppliers = getRandomSubset(
       [...allSuppliers.filter(s => !revertedSuppliers.includes(s)), ...revertedSuppliers.slice(0, 2)],
       3, 10
-    )
+    );
     
     categories[rfq.id] = {
       all: allSuppliers,
       reverted: revertedSuppliers,
       pending: pendingSuppliers
-    }
-  })
+    };
+  });
   
-  return categories
-}
+  return categories;
+};
 
 // Pre-generate supplier categories data
-const supplierCategoriesData = generateSupplierCategories()
+const supplierCategoriesData = generateSupplierCategories();
 
 // Helper function to generate a new RFQ ID
 export const generateRfqId = (): string => {
-  const date = new Date()
-  const month = date.toLocaleString('en-US', { month: 'short' })
-  const year = date.getFullYear()
-  const randomNum = Math.floor(Math.random() * 100)
-  return `RFQ_${month}_${year}_${randomNum}`
-}
+  const date = new Date();
+  const month = date.toLocaleString('en-US', { month: 'short' });
+  const year = date.getFullYear();
+  const randomNum = Math.floor(Math.random() * 100);
+  return `RFQ_${month}_${year}_${randomNum}`;
+};
 
 // Get RFQ by ID
 export const getRfqById = (id: string): RFQ | null => {
-  return initialRfqs.find((rfq) => rfq.id === id) || null
-}
+  return initialRfqs.find((rfq) => rfq.id === id) || null;
+};
 
 export const updateRfqStatus = (id: string, status: "active" | "pending" | "completed") => {
   const index = initialRfqs.findIndex((rfq) => rfq.id === id);
@@ -381,50 +407,50 @@ export const updateRfqStatus = (id: string, status: "active" | "pending" | "comp
 
 // Get route recommendations for an RFQ
 export const getRouteRecommendations = (rfqId: string): RouteRecommendation[] => {
-  return routeRecommendationsData[rfqId] || []
-}
+  return routeRecommendationsData[rfqId] || [];
+};
 
 export function updateRouteDetails(rfqId: string, route: string, updatedDetails: RouteDetail[]) {
   if (!routeDetailsData[rfqId]) {
-    routeDetailsData[rfqId] = {}
+    routeDetailsData[rfqId] = {};
   }
-  routeDetailsData[rfqId][route] = updatedDetails
+  routeDetailsData[rfqId][route] = updatedDetails;
 }
 
 // Get route details for an RFQ and route
 export const getRouteDetails = (rfqId: string, route: string): RouteDetail[] => {
-  return (routeDetailsData[rfqId] && routeDetailsData[rfqId][route]) || []
-}
+  return (routeDetailsData[rfqId] && routeDetailsData[rfqId][route]) || [];
+};
 
 // Get suppliers by category for an RFQ
 export const getSuppliersByCategory = (rfqId: string): Record<SupplierCategory, string[]> => {
-  return supplierCategoriesData[rfqId] || { all: [], reverted: [], pending: [] }
-}
+  return supplierCategoriesData[rfqId] || { all: [], reverted: [], pending: [] };
+};
 
 // Get all unique routes across all RFQs
 export const getAllRoutes = (): string[] => {
-  const allRoutes = new Set<string>()
+  const allRoutes = new Set<string>();
   
   Object.values(routeRecommendationsData).forEach(recommendations => {
-    recommendations.forEach(rec => allRoutes.add(rec.route))
-  })
+    recommendations.forEach(rec => allRoutes.add(rec.route));
+  });
   
-  return Array.from(allRoutes)
-}
+  return Array.from(allRoutes);
+};
 
 // Get all unique business entities across all RFQs
 export const getAllBusinessEntities = (): string[] => {
-  return businessEntities
-}
+  return businessEntities;
+};
 
 // Get all unique container types across all RFQs
 export const getAllContainerTypes = (): string[] => {
-  return containerTypes
-}
+  return containerTypes;
+};
 
 export const getAllCommodities = (): string[] => {
-  return commodities
-}
+  return commodities;
+};
 
 const allRows = Object.entries(routeRecommendationsData).flatMap(([rfqId, recommendations]) =>
   recommendations.flatMap(rec =>
@@ -439,3 +465,9 @@ const allRows = Object.entries(routeRecommendationsData).flatMap(([rfqId, recomm
     }))
   )
 );
+
+// Updated function to get unique suppliers
+export const getUniqueSuppliers = (rfqId: string): { name: string; isUnique: boolean }[] => {
+  const rfq = getRfqById(rfqId);
+  return rfq ? rfq.suppliers : [];
+};
