@@ -9,7 +9,6 @@ import { Badge } from "@/components/ui/badge"
 import { Card } from "@/components/ui/card"
 import { getRouteRecommendations, RouteRecommendation, initialRfqs as rfqDataInitialRfqs, RFQ } from "@/data/rfq-data"
 
-
 console.log("RFQ Lane Data", rfqDataInitialRfqs)
 console.log("Route Recommendations", getRouteRecommendations)
 
@@ -31,6 +30,11 @@ const additionalFilters = [
   { name: "Select Commodity *", value: "" },
   { name: "Select Container Type *", value: "" },
 ]
+
+// Utility function to return true with the given probability (default 0.5)
+function getRandomBoolean(probability = 0.5) {
+  return Math.random() < probability;
+}
 
 export default function ComparePage() {
   const router = useRouter()
@@ -58,7 +62,6 @@ export default function ComparePage() {
 
   useEffect(() => {
     if (!initialized.current) {
-      // Extract unique Business Entities, Commodities, and Container Types
       const businessEntitiesSet = new Set<string>()
       const commoditiesSet = new Set<string>()
       const containerTypesSet = new Set<string>()
@@ -92,7 +95,6 @@ export default function ComparePage() {
         if (selectedRfqs.length > 0) {
           setRfqs(selectedRfqs)
 
-          // Dynamically populate lanes based on selected RFQs
           const lanesSet = new Set<string>()
           selectedRfqs.forEach((rfq) => {
             const recommendations = getRouteRecommendations(rfq.id)
@@ -100,14 +102,13 @@ export default function ComparePage() {
           })
           setUniqueLanes(Array.from(lanesSet))
 
-          // Set the selected lane from the URL
           if (laneFromUrl && lanesSet.has(decodeURIComponent(laneFromUrl))) {
             setSelectedLane(decodeURIComponent(laneFromUrl))
           }
 
           const dynamicComparisonData = generateComparisonData(selectedRfqs)
           setAllComparisonData(dynamicComparisonData)
-          setComparisonData(dynamicComparisonData)  // Always set all data initially
+          setComparisonData(dynamicComparisonData)
         } else {
           const defaultRfqs = rfqDataInitialRfqs.slice(0, 2)
           setRfqs(defaultRfqs)
@@ -129,7 +130,6 @@ export default function ComparePage() {
   const generateComparisonData = (selectedRfqs: RFQ[]) => {
     const data: ComparisonData[] = []
 
-    // 1. Collect all unique (lane, category) pairs across all RFQs
     const laneCategoryPairs = new Set<string>()
     selectedRfqs.forEach((rfq) => {
       const recommendations = getRouteRecommendations(rfq.id)
@@ -140,7 +140,6 @@ export default function ComparePage() {
       })
     })
 
-    // 2. For each (lane, category), build a row
     Array.from(laneCategoryPairs).forEach((pair) => {
       const [lane, category] = pair.split("|||")
       const item: ComparisonData = {
@@ -155,11 +154,16 @@ export default function ComparePage() {
         category,
       }
 
-      let previousPrice = 0
-      let overallChange = 0
       let hasAnyPrice = false
+      const prices: number[] = []
 
-      selectedRfqs.forEach((rfq, index) => {
+      // Sort selected RFQs by year (ascending) for correct % change calculation
+      const sortedRfqs = [...selectedRfqs].sort((a, b) => {
+        const yearA = new Date(a.createdAt).getFullYear();
+        const yearB = new Date(b.createdAt).getFullYear();
+        return yearA - yearB;
+      });
+      sortedRfqs.forEach((rfq, index) => {
         const recommendations = getRouteRecommendations(rfq.id)
         const recommendation = recommendations.find((rec) => rec.route === lane)
         const option = recommendation?.options.find((opt) => opt.category === category)
@@ -173,45 +177,88 @@ export default function ComparePage() {
         const price = option ? option.price : 0
         const targetPrice = recommendation ? recommendation.targetPrice : 0
 
-        item[`${rfq.id}Price`] = price
-        item[`${rfq.id}TargetPrice`] = targetPrice > 0 ? targetPrice : ""
-        item[`${rfq.id}SupplierName`] = option?.supplier || ""
-        item[`${rfq.id}Category`] = category
+        // Dynamically simulate supplier presence with different probabilities for each RFQ
+        let presenceProbability = 0.3; // default
+        if (index === 0) presenceProbability = 0.7;
+        else if (index === 1) presenceProbability = 0.5;
 
-        if (price > 0) hasAnyPrice = true
-
-        // Only calculate % change if both previous and current price exist
-        if (index > 0 && previousPrice > 0 && price > 0) {
-          const change = ((price - previousPrice) / previousPrice) * 100
-          item[`${selectedRfqs[index - 1].id}_${rfq.id}`] = change.toFixed(1)
-          item[`${selectedRfqs[index - 1].id}_${rfq.id}_trend`] =
-            change < 0 ? "down" : change > 0 ? "up" : "stable"
-          overallChange += change
+        if (getRandomBoolean(presenceProbability)) {
+          item[`${rfq.id}Price`] = price > 0 ? price : 0
+          item[`${rfq.id}TargetPrice`] = targetPrice > 0 ? targetPrice : ""
+          item[`${rfq.id}SupplierName`] = option?.supplier || ""
+          item[`${rfq.id}Category`] = category
+        } else {
+          item[`${rfq.id}Price`] = 0
+          item[`${rfq.id}TargetPrice`] = ""
+          item[`${rfq.id}SupplierName`] = ""
+          item[`${rfq.id}Category`] = ""
         }
 
-        previousPrice = price
+        prices.push(item[`${rfq.id}Price`])
+        if (price > 0) hasAnyPrice = true
       })
 
-      // Calculate overall trend if there are at least two RFQs with prices
-      if (selectedRfqs.length > 1) {
-        const avgChange = overallChange / (selectedRfqs.length - 1)
-        if (avgChange < -5) {
-          item.overallTrend = "decrease"
-          item.trend = "down"
-          item.percentChange = Math.round(avgChange)
-        } else if (avgChange > 5) {
-          item.overallTrend = "increase"
-          item.trend = "up"
-          item.percentChange = Math.round(avgChange)
-        } else {
-          item.overallTrend = "stable"
-          item.trend = "stable"
-          item.percentChange = Math.round(avgChange)
+      // Only include row if at least one price is greater than 0
+      if (!prices.every(price => price === 0)) {
+        if (sortedRfqs.length > 1) {
+          for (let i = 0; i < sortedRfqs.length - 1; i++) {
+            const prevRfq = sortedRfqs[i];
+            const currRfq = sortedRfqs[i + 1];
+            const prevPrice = item[`${prevRfq.id}Price`];
+            const currPrice = item[`${currRfq.id}Price`];
+            if (prevPrice > 0 && currPrice > 0) {
+              const change = ((currPrice - prevPrice) / prevPrice) * 100;
+              item[`${prevRfq.id}_${currRfq.id}`] = change.toFixed(1);
+              item[`${prevRfq.id}_${currRfq.id}_trend`] =
+                change < 0 ? "down" : change > 0 ? "up" : "stable";
+            } else {
+              item[`${prevRfq.id}_${currRfq.id}`] = "N/A";
+              item[`${prevRfq.id}_${currRfq.id}_trend`] = "-";
+            }
+          }
         }
-      }
 
-      // Only add row if at least one price exists for this (lane, category)
-      if (hasAnyPrice) {
+        // Always show supplier name if any price is present, otherwise '-'
+        const supplierPrices = sortedRfqs.map(rfq => item[`${rfq.id}Price`] || 0);
+        if (supplierPrices.some(price => price > 0)) {
+          // Use the supplier name from the first non-empty price column
+          let supplierName = "-";
+          for (let i = 0; i < sortedRfqs.length; i++) {
+            if (item[`${sortedRfqs[i].id}Price`] > 0 && item[`${sortedRfqs[i].id}SupplierName`]) {
+              supplierName = item[`${sortedRfqs[i].id}SupplierName`];
+              break;
+            }
+          }
+          item[`${sortedRfqs[0].id}SupplierName`] = supplierName;
+        } else {
+          item[`${sortedRfqs[0].id}SupplierName`] = "-";
+        }
+
+        if (selectedRfqs.length > 1) {
+          const avgChange = prices.reduce((sum, price, index) => {
+            if (index > 0) {
+              const prevPrice = prices[index - 1];
+              if (prevPrice > 0 && price > 0) {
+                return sum + ((price - prevPrice) / prevPrice) * 100;
+              }
+            }
+            return sum;
+          }, 0) / (prices.length - 1);
+          if (avgChange < -5) {
+            item.overallTrend = "decrease"
+            item.trend = "down"
+            item.percentChange = Math.round(avgChange)
+          } else if (avgChange > 5) {
+            item.overallTrend = "increase"
+            item.trend = "up"
+            item.percentChange = Math.round(avgChange)
+          } else {
+            item.overallTrend = "stable"
+            item.trend = "stable"
+            item.percentChange = Math.round(avgChange)
+          }
+        }
+
         data.push(item)
       }
     })
@@ -221,8 +268,6 @@ export default function ComparePage() {
 
   const applyFilters = () => {
     let filteredData = [...allComparisonData]
-
-    console.log("Filtered Data", filteredData)
 
     if (selectedLane && selectedLane !== "All") {
       filteredData = filteredData.filter((data) => data.lane === selectedLane)
@@ -304,7 +349,7 @@ export default function ComparePage() {
     comparisonData.forEach((data) => {
       const row = [data.lane]
       rfqs.forEach((rfq) => {
-        row.push(data[`${rfq.id}Price`], data[`${rfq.id}TargetPrice`], data[`${rfq.id}SupplierName`])
+        row.push(data[`${rfq.id}Price`], data[`${rfq.id}TargetPrice`], data[`${rfq.id}SupplierName`] || "")
       })
       if (rfqs.length >= 2) {
         for (let i = 0; i < rfqs.length - 1; i++) {
@@ -612,7 +657,7 @@ export default function ComparePage() {
                   <tr key={index} className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}>
                     <td className="p-3 border text-sm">{data.lane}</td>
                     <td className="p-3 border text-sm text-center bg-yellow-50">
-                      {data[`${rfqs[0].id}SupplierName`] || "-"}
+                      {data[`${rfqs[0].id}SupplierName`]}
                     </td>
                     {rfqs.map((rfq) => (
                       <React.Fragment key={`${rfq.id}-data-${index}`}>
@@ -634,7 +679,7 @@ export default function ComparePage() {
                         const trendKey = `${comparisonKey}_trend`
                         const percentChangeRaw = data[comparisonKey]
                         const percentChange = Number.parseFloat(percentChangeRaw || "0")
-                        const hasPercentChange = percentChangeRaw !== undefined && percentChangeRaw !== null && percentChangeRaw !== "" && !isNaN(Number(percentChangeRaw))
+                        const hasPercentChange = percentChangeRaw !== undefined && percentChangeRaw !== null && percentChangeRaw !== "" && percentChangeRaw !== "N/A" && !isNaN(Number(percentChangeRaw))
                         const trend = data[trendKey] || ""
                         const isNegative = percentChange < 0
 
@@ -643,9 +688,11 @@ export default function ComparePage() {
                             <td
                               className={`p-3 border text-sm text-center ${hasPercentChange && isNegative ? "text-red-500" : hasPercentChange ? "text-green-500" : "text-gray-400"}`}
                             >
-                              {hasPercentChange
-                                ? `${percentChange > 0 ? "+" : ""}${data[comparisonKey]}%`
-                                : "N/A"}
+                              {percentChangeRaw === "N/A"
+                                ? "N/A"
+                                : hasPercentChange
+                                  ? `${percentChange > 0 ? "+" : ""}${data[comparisonKey]}%`
+                                  : "N/A"}
                             </td>
                             <td className="p-3 border text-sm text-center text-green-500 flex justify-center">
                               <span className="flex items-center">
@@ -661,9 +708,7 @@ export default function ComparePage() {
                                   </svg>
                                 ) : null}
                                 <span className={trend === "down" ? "text-red-500" : hasPercentChange ? "text-green-500" : "text-gray-400"}>
-                                  {hasPercentChange
-                                    ? (trend === "down" ? "Down" : "Up")
-                                    : "-"}
+                                  {hasPercentChange ? (trend === "down" ? "Down" : "Up") : percentChangeRaw === "N/A" ? "-" : "-"}
                                 </span>
                               </span>
                             </td>
